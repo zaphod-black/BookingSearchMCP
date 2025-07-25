@@ -73,9 +73,9 @@ export class GoogleCalendarSearchAdapter extends BaseBookingAdapter {
       
       return {
         success: true,
-        spokenSummary: this.generateVoiceSummary(filteredSlots, query),
-        availableSlots: filteredSlots.slice(0, 10), // Limit for voice
-        totalOptions: filteredSlots.length,
+        spokenSummary: this.generateVoiceSummary(filteredSlots.slice(0, 5), query), // Use first 5 for summary
+        availableSlots: filteredSlots.slice(0, 5), // Limit to 5 for voice optimization
+        totalOptions: Math.min(filteredSlots.length, 5), // Show limited count for voice
         responseTime,
         conversationContext: {
           sessionId: query.sessionId || `gcal-${Date.now()}`,
@@ -166,7 +166,7 @@ export class GoogleCalendarSearchAdapter extends BaseBookingAdapter {
       }
     });
     
-    while (currentDate <= end) {
+    while (currentDate <= end && slots.length < 10) { // Limit to 10 slots for performance
       // Skip weekends if configured
       if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
         currentDate.setDate(currentDate.getDate() + 1);
@@ -179,8 +179,9 @@ export class GoogleCalendarSearchAdapter extends BaseBookingAdapter {
         continue;
       }
       
-      // Generate slots for business hours
-      for (let hour = this.businessHours.start; hour < this.businessHours.end; hour++) {
+      // Generate slots for business hours (limit to 2 per day for voice optimization)
+      let dailySlots = 0;
+      for (let hour = this.businessHours.start; hour < this.businessHours.end && dailySlots < 2; hour++) {
         const slotTime = new Date(currentDate);
         slotTime.setHours(hour, 0, 0, 0);
         
@@ -199,7 +200,11 @@ export class GoogleCalendarSearchAdapter extends BaseBookingAdapter {
         const slot = this.createAvailabilitySlot(slotTime, query);
         if (slot) {
           slots.push(slot);
+          dailySlots++;
         }
+        
+        // Stop if we have enough slots
+        if (slots.length >= 10) break;
       }
       
       currentDate.setDate(currentDate.getDate() + 1);

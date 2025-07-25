@@ -136,6 +136,53 @@ DEFAULT_PARTY_SIZE_LIMIT=20
 4. Download the service account key
 5. Extract the email and private key for environment variables
 
+### Google Calendar Integration Verification
+
+After configuring your Google Calendar credentials, verify the integration:
+
+```bash
+# Test Google Calendar connectivity
+node test-calendar.js
+```
+
+This test will:
+- Verify service account authentication
+- Check calendar access permissions
+- Test event retrieval capabilities
+- Validate the Google Calendar adapter functionality
+- Show sample availability slots
+
+**Expected Output:**
+```
+✓ Service Account Email: your-service-account@project.iam.gserviceaccount.com
+✓ Target Calendar: your-calendar@domain.com
+✓ Authentication configured successfully
+✓ Calendar found: Your Calendar Name
+✓ Calendar access confirmed
+✓ Search completed in XXXms
+✓ Available slots found: X
+```
+
+**Common Issues:**
+- **403 Forbidden**: Service account needs Calendar Editor permissions
+- **404 Not Found**: Verify calendar ID and sharing settings
+- **401 Unauthorized**: Check private key format and service account email
+
+### Complete Workflow Testing
+
+Test the full MCP workflow including all three tools:
+
+```bash
+# Test complete booking workflow
+node test-workflow.js
+```
+
+This comprehensive test simulates:
+1. Voice agent searching for availability
+2. Customer selecting and validating booking
+3. Payment handoff to CorePaymentMCP
+4. Performance metrics validation
+
 ## MCP Protocol Implementation
 
 BookingSearchMCP implements three core MCP tools for voice agent integration:
@@ -640,6 +687,73 @@ When creating new booking platform adapters:
 4. Include platform-specific tests
 5. Document configuration requirements
 6. Ensure error handling consistency
+
+## 11Labs Voice Agent Integration
+
+### MCP Server Connection
+
+BookingSearchMCP runs as a stdio-based MCP server for 11Labs integration:
+
+```bash
+# Start the MCP server
+npm run dev
+```
+
+The server listens for MCP protocol messages via stdio and responds with voice-optimized content.
+
+### Voice Agent Configuration
+
+Configure your 11Labs voice agent with these MCP tools:
+
+**Available Tools:**
+- `search_availability` - Search for booking availability
+- `validate_booking_selection` - Reserve selected booking option  
+- `prepare_payment_handoff` - Trigger payment automation
+
+**Tool Usage Example:**
+```javascript
+// Voice agent searches for availability
+const searchResult = await mcpClient.callTool('search_availability', {
+  startDate: '2024-01-15',
+  endDate: '2024-01-22',
+  partySize: 4,
+  activityType: 'whale watching',
+  platform: 'gcalendar'
+});
+
+// Agent speaks the voice-optimized response
+agent.speak(searchResult.content[0].text);
+```
+
+### Testing MCP Integration
+
+Test the MCP tools as 11Labs would call them:
+
+```bash
+# Test MCP tool integration
+node test-mcp-tools.js
+```
+
+This simulates the complete 11Labs voice agent workflow:
+1. Customer requests booking availability
+2. Agent calls search_availability MCP tool
+3. Customer selects preferred option
+4. Agent calls validate_booking_selection MCP tool
+5. Call ends, system calls prepare_payment_handoff
+6. CorePaymentMCP handles payment automation
+
+### Development vs Production
+
+**Development Testing:**
+- Use Tailscale or local networking for testing
+- Both BookingSearchMCP and CorePaymentMCP running locally
+- Real Google Calendar integration with test data
+
+**Production Deployment:**
+- Container orchestration (Docker/Kubernetes)
+- Load balancing for high availability
+- Secure networking between services
+- Production Google Calendar with real booking data
 
 ## License
 
